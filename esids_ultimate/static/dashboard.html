@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ESIDS v7 Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#060f1e;--s1:#0b1929;--s2:#0f2138;--s3:#142745;
+  --bd:#1a3254;--bd2:#2a4870;
+  --grn:#10b981;--ylw:#f59e0b;--red:#ef4444;--blu:#3b82f6;--pur:#8b5cf6;--cyn:#06b6d4;
+  --grn2:rgba(16,185,129,.12);--ylw2:rgba(245,158,11,.12);--red2:rgba(239,68,68,.12);
+  --blu2:rgba(59,130,246,.12);--pur2:rgba(139,92,246,.12);
+  --grn3:rgba(16,185,129,.35);--ylw3:rgba(245,158,11,.35);--red3:rgba(239,68,68,.4);
+  --blu3:rgba(59,130,246,.35);--pur3:rgba(139,92,246,.35);
+  --t1:#e8f1ff;--t2:#7a9cc0;--t3:#304e6a;
+  --fn:"Inter",system-ui,sans-serif;--fm:"JetBrains Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--fn);font-size:13px;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--s1)}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:900;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(6,15,30,.97);border-bottom:1px solid var(--bd);backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:9px}
+.bico{width:32px;height:32px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 12px rgba(59,130,246,.4)}
+.bnm{font-size:14px;font-weight:800;background:linear-gradient(90deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.bsb{font-size:9.5px;color:var(--t3);font-family:var(--fm)}
+.hm{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.sev{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:.05em;transition:.3s}
+.sN{background:var(--grn2);border:1px solid var(--grn3);color:var(--grn)}
+.sA,.sW{background:var(--ylw2);border:1px solid var(--ylw3);color:var(--ylw)}
+.sC{background:var(--red2);border:1px solid var(--red3);color:var(--red);animation:cpls 2s infinite}
+@keyframes cpls{0%,100%{box-shadow:none}50%{box-shadow:0 0 12px rgba(239,68,68,.4)}}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.hs{font-size:10.5px;color:var(--t2);padding:3px 8px;background:var(--s2);border-radius:5px;border:1px solid var(--bd)}
+.hs b{color:var(--t1)}
+.hclk{font-family:var(--fm);font-size:11px;color:var(--blu);background:var(--blu2);padding:3px 9px;border-radius:5px;border:1px solid var(--blu3)}
+/* NAV */
+nav{display:flex;background:var(--s1);border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none;padding:0 4px}
+nav::-webkit-scrollbar{display:none}
+.ntab{display:flex;align-items:center;gap:4px;padding:9px 13px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--t3);white-space:nowrap;border-bottom:2px solid transparent;transition:.15s}
+.ntab:hover{color:var(--t2)}.ntab.on{color:var(--t1);border-bottom-color:var(--blu)}
+.nb{background:var(--red);color:#fff;border-radius:8px;padding:1px 4px;font-size:8.5px;font-weight:700}
+/* MAIN */
+main{padding:12px 16px}
+.pane{display:none}.pane.on{display:block}
+/* CRITICAL FIX: chart containers must have explicit height */
+.cv{position:relative;width:100%}
+.h100{height:100px}.h140{height:140px}.h170{height:170px}.h200{height:200px}.h240{height:240px}.h280{height:280px}
+.cv canvas{position:absolute!important;top:0;left:0;width:100%!important;height:100%!important}
+/* KPI */
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;margin-bottom:13px}
+.kpi{background:var(--s1);border:1px solid var(--bd);border-left:3px solid var(--kc);border-radius:9px;padding:12px 13px;transition:.2s}
+.kpi:hover{border-color:var(--bd2)}
+.klb{font-size:9.5px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.kv{font-size:26px;font-weight:800;color:var(--t1);line-height:1;font-variant-numeric:tabular-nums}
+.ks{font-size:9.5px;color:var(--t3);margin-top:3px}
+.kb{--kc:var(--blu)}.kg2{--kc:var(--grn)}.kr{--kc:var(--red)}.ky{--kc:var(--ylw)}.kp{--kc:var(--pur)}.kc{--kc:var(--cyn)}
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:13px;margin-bottom:11px;transition:.2s}
+.card:hover{border-color:var(--bd2)}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.ct{font-size:11.5px;font-weight:700;color:var(--t1)}.csb{font-size:9.5px;color:var(--t3);margin-top:2px}
+/* CONTROLS */
+.crow{display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+select,.btn,.inp{padding:5px 10px;font-size:10.5px;font-family:var(--fn);font-weight:500;border:1px solid var(--bd);border-radius:5px;background:var(--s2);color:var(--t2);cursor:pointer;transition:.15s;outline:none}
+select:hover,.btn:hover{border-color:var(--bd2);color:var(--t1)}
+select:focus,.inp:focus{border-color:var(--blu);color:var(--t1)}
+.inp{flex:1;min-width:150px;color:var(--t1)}.inp::placeholder{color:var(--t3)}
+.bp{background:var(--blu2);border-color:var(--blu3);color:var(--blu)}.bp:hover{background:var(--blu);color:#fff!important}
+.bsm{padding:3px 8px;font-size:10px}
+/* BADGE */
+.b{display:inline-flex;align-items:center;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700}
+.bgrn{background:var(--grn2);color:var(--grn);border:1px solid var(--grn3)}
+.bylw{background:var(--ylw2);color:var(--ylw);border:1px solid var(--ylw3)}
+.bred{background:var(--red2);color:var(--red);border:1px solid var(--red3)}
+.bblu{background:var(--blu2);color:var(--blu);border:1px solid var(--blu3)}
+.bpur{background:var(--pur2);color:var(--pur);border:1px solid var(--pur3)}
+.bliv{background:var(--grn2);color:var(--grn);border:1px solid var(--grn3);animation:blink 2s infinite}
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+.g31{display:grid;grid-template-columns:2fr 1fr;gap:11px}
+@media(max-width:1050px){.g2,.g3,.g31{grid-template-columns:1fr}}
+/* TABLE */
+.tw{overflow:auto;border-radius:7px;max-height:380px}
+table{width:100%;border-collapse:collapse;font-size:10.5px}
+thead tr{background:var(--s2);position:sticky;top:0;z-index:2}
+th{padding:7px 9px;text-align:left;font-weight:600;color:var(--t3);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:6px 9px;border-bottom:1px solid rgba(26,50,84,.25);color:var(--t2)}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+td.nm{color:var(--t1);font-weight:500;font-family:var(--fm);font-size:10px}
+/* PROGRESS */
+.prow{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.plb{width:90px;color:var(--t2);flex-shrink:0;font-size:10px}
+.pb{flex:1;height:5px;background:rgba(26,50,84,.5);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px;transition:width .4s ease}
+.pv{width:60px;text-align:right;color:var(--t1);font-family:var(--fm);font-weight:600;font-size:10px}
+/* SLIDER */
+.slg{margin-bottom:11px}
+.slh{display:flex;justify-content:space-between;margin-bottom:4px;font-size:10.5px;color:var(--t2)}
+.slh span{color:var(--t1);font-weight:700;font-family:var(--fm)}
+input[type=range]{width:100%;accent-color:var(--blu);cursor:pointer}
+/* FEED */
+.fi{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:5px;background:var(--s2);border-left:3px solid var(--bd);margin-bottom:5px;font-size:10.5px}
+.ft{color:var(--t3);font-family:var(--fm);flex-shrink:0;width:68px;font-size:9.5px}
+.fm2{color:var(--t2);flex:1}
+.fiI{border-left-color:var(--blu)}.fiW{border-left-color:var(--ylw)}.fiO{border-left-color:var(--grn)}.fiC{border-left-color:var(--red)}
+/* METRIC ROW */
+.mr{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(26,50,84,.25);font-size:11px}
+.mk{color:var(--t2)}.mv{font-family:var(--fm);font-weight:600;color:var(--t1)}
+.mvg{color:var(--grn)}.mvy{color:var(--ylw)}.mvr{color:var(--red)}
+/* GLOBE */
+#gw{width:100%;height:550px;background:#000508;border-radius:9px;position:relative;overflow:hidden;border:1px solid var(--bd)}
+#gc{display:block;width:100%;height:100%;cursor:grab}#gc:active{cursor:grabbing}
+.ghud{position:absolute;background:rgba(6,15,30,.88);backdrop-filter:blur(8px);border:1px solid var(--bd);border-radius:7px;padding:7px 11px;font-size:10px}
+.ghud.tl{top:10px;left:10px}.ghud.tr{top:10px;right:10px;text-align:right}
+.ghl{color:var(--t3);font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.ghv{color:var(--t1);font-weight:600;font-family:var(--fm);font-size:11px}
+/* WHATIF */
+.wbox{padding:18px;border-radius:9px;border:1px solid var(--bd);text-align:center;margin-top:0;transition:.3s}
+.wsev{font-size:32px;font-weight:800;margin-bottom:5px}
+.wconf{font-size:11px;color:var(--t2);margin-bottom:8px}
+/* INSIGHT */
+.ins{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;background:var(--s2);border:1px solid var(--bd);margin-bottom:12px;font-size:11px}
+.ins b{color:var(--t1)}.ins span{color:var(--t2)}
+/* INDIA MAP */
+#india-svg{width:100%;height:320px;background:var(--s2);border-radius:8px;border:1px solid var(--bd)}
+/* CONST CARDS */
+.cgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px;margin-top:8px}
+.cc{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:9px;cursor:pointer;transition:.2s;text-align:center}
+.cc:hover,.cc.on{border-color:var(--blu);background:var(--blu2)}
+.ccn{font-size:10px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.ccc{font-size:17px;font-weight:800;color:var(--blu)}.cco{font-size:8.5px;color:var(--t3)}
+/* LOADING */
+.ld{text-align:center;padding:24px;color:var(--t3);font-size:11px}
+.sp{display:inline-block;width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--blu);border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.alert-box{display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:6px;margin-bottom:6px;border-left:3px solid var(--red);background:var(--red2)}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="brand">
+    <div class="bico">&#x1F6F0;</div>
+    <div><div class="bnm">ESIDS ULTIMATE v7</div><div class="bsb">EARTH-SPACE INTELLIGENCE &amp; DEFENCE SYSTEM</div></div>
+  </div>
+  <div class="hm">
+    <div class="sev sN" id="sbdg"><span class="dot"></span><span id="stxt">LOADING</span></div>
+    <div class="hs">Sats: <b id="hs-s">--</b></div>
+    <div class="hs">Delay: <b id="hs-d">--</b>min</div>
+    <div class="hs">HR: <b id="hs-h">--</b></div>
+    <div class="hs">OTI: <b id="hs-o">--</b></div>
+  </div>
+  <div class="hclk" id="hclk">--:--:-- UTC</div>
+</header>
+<nav>
+  <button class="ntab on" onclick="T(0)">&#x1F4CA; Overview</button>
+  <button class="ntab" onclick="T(1)">&#x1F30D; 3D Globe</button>
+  <button class="ntab" onclick="T(2)">&#x1F534; Mars Comm</button>
+  <button class="ntab" onclick="T(3)">&#x1F916; ML Models</button>
+  <button class="ntab" onclick="T(4)">&#x1F6F8; Satellites</button>
+  <button class="ntab" onclick="T(5)">&#x26A0; Risk &amp; Alerts <span class="nb" id="nhr">0</span></button>
+  <button class="ntab" onclick="T(6)">&#x1F9E0; AI Decision</button>
+  <button class="ntab" onclick="T(7)">&#x1F3B7; What-If</button>
+  <button class="ntab" onclick="T(8)">&#x1F4E1; Live Feed</button>
+  <button class="ntab" onclick="T(9)">&#x1F1EE;&#x1F1F3; India</button>
+</nav>
+<main>
+<!-- TAB 0: OVERVIEW -->
+<div class="pane on" id="p0">
+  <div class="ins">&#x1F4A1; <span>Tracking <b id="ov-s">--</b> satellites. Status: <b id="ov-st">--</b>. Mars delay: <b id="ov-d">--</b> min. High-risk: <b id="ov-h">--</b></span></div>
+  <div class="kg">
+    <div class="kpi kb"><div class="klb">Mars Delay</div><div class="kv" id="kd">--</div><div class="ks">minutes</div></div>
+    <div class="kpi kg2"><div class="klb">Satellites</div><div class="kv" id="ks2">--</div><div class="ks">tracked</div></div>
+    <div class="kpi kr"><div class="klb">High-Risk</div><div class="kv" id="kh">--</div><div class="ks">conjunctions</div></div>
+    <div class="kpi ky"><div class="klb">OTI Score</div><div class="kv" id="ko">--</div><div class="ks">of 100</div></div>
+    <div class="kpi kp"><div class="klb">Anomalies</div><div class="kv" id="ka">--</div><div class="ks">detected</div></div>
+    <div class="kpi kc"><div class="klb">Blackouts</div><div class="kv" id="kb2">--</div><div class="ks">periods</div></div>
+  </div>
+  <div class="g31">
+    <div>
+      <div class="card"><div class="ch"><div><div class="ct">Live Mars Delay (last 72h)</div><div class="csb">15-minute cadence</div></div><span class="b bliv">LIVE</span></div><div class="cv h170"><canvas id="c0a"></canvas></div></div>
+      <div class="g2">
+        <div class="card"><div class="ch"><div class="ct">Orbit Distribution</div></div><div class="cv h170"><canvas id="c0b"></canvas></div></div>
+        <div class="card"><div class="ch"><div class="ct">Risk Breakdown</div></div><div class="cv h170"><canvas id="c0c"></canvas></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div class="ch"><div class="ct">AI Recommendations</div></div><div id="ov-recs"><div class="ld"><span class="sp"></span>Loading...</div></div></div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">Orbit Breakdown</div></div><div id="ov-oc"></div></div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">Active Alerts</div></div><div id="ov-alr"><div class="ld"><span class="sp"></span>Loading...</div></div></div>
+    </div>
+  </div>
+</div>
+<!-- TAB 1: GLOBE -->
+<div class="pane" id="p1">
+  <div class="ins">&#x1F30D; <span><b id="gscount">--</b> satellites plotted. Drag=rotate, Scroll=zoom. <span style="color:var(--blu)">&#x25A0;</span>LEO <span style="color:var(--pur)">&#x25A0;</span>MEO <span style="color:var(--ylw)">&#x25A0;</span>GEO</span></div>
+  <div class="crow">
+    <select id="gof" onchange="rebuildSats()"><option value="ALL">All Orbits</option><option value="LEO">LEO</option><option value="MEO">MEO</option><option value="GEO">GEO</option><option value="HEO">HEO</option></select>
+    <select id="gcf" onchange="rebuildSats()"><option value="ALL">All Constellations</option></select>
+    <button class="btn bp" onclick="gReset()">Reset View</button>
+    <button class="btn" id="grbtn" onclick="gToggle()">Pause</button>
+  </div>
+  <div id="gw"><canvas id="gc"></canvas>
+    <div class="ghud tl"><div class="ghl">ISS Position</div><div class="ghv">Lat <span id="iLat">--</span>deg</div><div class="ghv">Lon <span id="iLon">--</span>deg</div><div class="ghv">Alt <span id="iAlt">--</span>km</div></div>
+    <div class="ghud tr"><div class="ghl">Fleet</div><div class="ghv" style="color:var(--blu)">LEO: <span id="gLEO">--</span></div><div class="ghv" style="color:var(--pur)">MEO: <span id="gMEO">--</span></div><div class="ghv" style="color:var(--ylw)">GEO: <span id="gGEO">--</span></div><div class="ghv" style="color:var(--grn)">HEO: <span id="gHEO">--</span></div></div>
+  </div>
+</div>
+<!-- TAB 2: MARS COMM -->
+<div class="pane" id="p2">
+  <div class="ins">&#x1F534; <span>Earth-Mars delay 2025 + <b>90-day forecast</b>. Range: <b id="mmin">--</b> to <b id="mmax">--</b> min.</span></div>
+  <div class="kg" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi kb"><div class="klb">Current</div><div class="kv" id="mcur">--</div><div class="ks">minutes</div></div>
+    <div class="kpi kg2"><div class="klb">Min 2025</div><div class="kv" id="mlo">--</div><div class="ks">minutes</div></div>
+    <div class="kpi kr"><div class="klb">Max 2025</div><div class="kv" id="mhi">--</div><div class="ks">minutes</div></div>
+    <div class="kpi ky"><div class="klb">Forecast Days</div><div class="kv">90</div><div class="ks">ahead</div></div>
+  </div>
+  <div class="card"><div class="ch"><div><div class="ct">Mars Delay: Historical + 90-Day Forecast</div><div class="csb">Full 2025 + predictions with confidence intervals</div></div><button class="btn bsm" id="cibtn" onclick="toggleCI()">Show CI</button></div><div class="cv h280"><canvas id="c2a"></canvas></div></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="ct">Delay Distribution</div><div class="csb">Histogram of all readings</div></div><div class="cv h170"><canvas id="c2b"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="ct">Monthly Average Delay</div></div><div class="cv h170"><canvas id="c2c"></canvas></div></div>
+  </div>
+</div>
+<!-- TAB 3: ML MODELS -->
+<div class="pane" id="p3">
+  <div class="ins">&#x1F916; <span>Ridge Regression + Fourier. R2=<b id="mlr2">--</b>. Random Forest risk model. Isolation Forest anomaly detection.</span></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="ct">Delay Model (Ridge)</div></div><div id="mldm"></div></div>
+    <div class="card"><div class="ch"><div class="ct">Risk Model (Random Forest)</div></div><div id="mlrm"></div></div>
+  </div>
+  <div class="card"><div class="ch"><div><div class="ct">Predicted vs Actual Delay</div><div class="csb">Training period comparison</div></div></div><div class="cv h200"><canvas id="c3a"></canvas></div></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="ct">Feature Importance</div></div><div class="cv h170"><canvas id="c3b"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="ct">Anomaly Score Timeline</div></div><div class="cv h170"><canvas id="c3c"></canvas></div></div>
+  </div>
+  <div class="card"><div class="ch"><div class="ct">Model Performance Radar</div></div><div class="cv h240"><canvas id="c3d"></canvas></div></div>
+</div>
+<!-- TAB 4: SATELLITES -->
+<div class="pane" id="p4">
+  <div class="ins">&#x1F6F8; <span>Real TLE data from Celestrak. <b id="stot">--</b> satellites. Filter by orbit or constellation.</span></div>
+  <div class="crow">
+    <select id="sof" onchange="satLoad()"><option value="ALL">All Orbits</option><option value="LEO">LEO</option><option value="MEO">MEO</option><option value="GEO">GEO</option><option value="HEO">HEO</option></select>
+    <select id="scf" onchange="satLoad()"><option value="ALL">All Constellations</option></select>
+    <input class="inp" id="ssrch" placeholder="Search satellite name..." oninput="satSearch()"/>
+    <button class="btn bp" onclick="satLoad()">Refresh</button>
+  </div>
+  <div class="g3">
+    <div class="card"><div class="ch"><div class="ct">Altitude Distribution</div></div><div class="cv h170"><canvas id="c4a"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="ct">Top Constellations</div></div><div class="cv h170"><canvas id="c4b"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="ct">Velocity vs Altitude</div></div><div class="cv h170"><canvas id="c4c"></canvas></div></div>
+  </div>
+  <div class="card"><div class="ch"><div class="ct">Constellation Filter (click card to filter)</div></div><div class="cgr" id="cgrid"></div></div>
+  <div class="card" style="margin-top:11px">
+    <div class="ch"><div class="ct">Satellite Catalog</div><span id="spinfo" style="font-size:9.5px;color:var(--t3)"></span></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>Name</th><th>NORAD</th><th>Orbit</th><th>Constellation</th><th>Alt km</th><th>Vel km/s</th><th>Lat</th><th>Lon</th><th>Source</th></tr></thead><tbody id="stbody"></tbody></table></div>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <button class="btn bsm" onclick="satPg(-1)">Prev</button>
+      <span id="spg" style="font-size:10px;color:var(--t2);padding:0 8px"></span>
+      <button class="btn bsm" onclick="satPg(1)">Next</button>
+    </div>
+  </div>
+</div>
+<!-- TAB 5: RISK & ALERTS -->
+<div class="pane" id="p5">
+  <div class="ins">&#x26A0; <span>Conjunction risk analysis. <b id="rtot">--</b> pairs. High-risk events need immediate action.</span></div>
+  <div class="kg" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi kg2"><div class="klb">SAFE</div><div class="kv" id="rsf">--</div><div class="ks">no action</div></div>
+    <div class="kpi ky"><div class="klb">CAUTION</div><div class="kv" id="rca">--</div><div class="ks">monitor</div></div>
+    <div class="kpi kr"><div class="klb">HIGH-RISK</div><div class="kv" id="rhr">--</div><div class="ks">act now</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="ct">Risk Level Distribution</div></div><div class="cv h200"><canvas id="c5a"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="ct">Miss Distance vs Probability</div><div class="csb">Scatter by risk level</div></div><div class="cv h200"><canvas id="c5b"></canvas></div></div>
+  </div>
+  <div class="card"><div class="ch"><div class="ct">Active Alerts</div></div><div id="ralerts"></div></div>
+  <div class="card">
+    <div class="ch"><div class="ct">Conjunction Events</div><select id="rfilt" onchange="riskLoad()"><option value="ALL">All</option><option value="HIGH-RISK">High-Risk</option><option value="CAUTION">Caution</option><option value="SAFE">Safe</option></select></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>Sat 1</th><th>Sat 2</th><th>Miss km</th><th>Risk</th><th>P(HR)%</th></tr></thead><tbody id="rtbody"></tbody></table></div>
+  </div>
+</div>
+<!-- TAB 6: AI DECISION -->
+<div class="pane" id="p6">
+  <div class="ins">&#x1F9E0; <span>Multi-signal AI threat assessment: delay + congestion + risk + anomalies + OTI.</span></div>
+  <div class="g2">
+    <div>
+      <div class="card" id="dcard" style="text-align:center;padding:22px;margin-bottom:11px">
+        <div style="font-size:34px;font-weight:800;margin-bottom:5px" id="dsev">--</div>
+        <div style="font-size:11px;color:var(--t2);margin-bottom:10px" id="dconf">Confidence: --</div>
+        <div style="font-size:11px;color:var(--t2);padding:10px;background:var(--s2);border-radius:6px;text-align:left" id="drat">--</div>
+      </div>
+      <div class="card"><div class="ch"><div class="ct">Recommendations</div></div><ul id="drecs" style="list-style:none;padding:0"></ul></div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">Signal Factors</div></div><div id="dfacs"></div></div>
+      <div class="card" style="margin-top:11px">
+        <div class="ch"><div class="ct">Hohmann Maneuver Planner</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+          <div><div style="font-size:9.5px;color:var(--t2);margin-bottom:3px">Current Alt km</div><input type="number" id="avc" value="550" class="inp" style="width:90px"></div>
+          <div><div style="font-size:9.5px;color:var(--t2);margin-bottom:3px">Target Alt km</div><input type="number" id="avt" value="600" class="inp" style="width:90px"></div>
+          <div><div style="font-size:9.5px;color:var(--t2);margin-bottom:3px">Mass kg</div><input type="number" id="avm" value="1000" class="inp" style="width:90px"></div>
+          <button class="btn bp bsm" onclick="planAv()">Calculate</button>
+        </div>
+        <div id="avres" style="font-family:var(--fm);font-size:10.5px;color:var(--t2)"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div class="ch"><div class="ct">OTI Timeline</div><div class="csb">Operational Threat Index</div></div><div class="cv h200"><canvas id="c6a"></canvas></div></div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">Signal Radar</div></div><div class="cv h240"><canvas id="c6b"></canvas></div></div>
+    </div>
+  </div>
+</div>
+<!-- TAB 7: WHAT-IF -->
+<div class="pane" id="p7">
+  <div class="ins">&#x1F3B7; <span>Adjust parameters to simulate scenarios. AI recalculates threat in real-time.</span></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div class="ct">Scenario Parameters</div></div>
+      <div class="slg"><div class="slh">Mars Delay (min) <span id="wdv">10.0</span></div><input type="range" id="wd" min="3" max="24" step="0.1" value="10" oninput="wiRun()"></div>
+      <div class="slg"><div class="slh">LEO Congestion % <span id="wcv">50</span></div><input type="range" id="wc" min="0" max="100" step="1" value="50" oninput="wiRun()"></div>
+      <div class="slg"><div class="slh">High-Risk Events <span id="whv">20</span></div><input type="range" id="wh" min="0" max="200" step="1" value="20" oninput="wiRun()"></div>
+      <div class="slg"><div class="slh">Anomaly Rate % <span id="wav">3.0</span></div><input type="range" id="wa" min="0" max="20" step="0.5" value="3" oninput="wiRun()"></div>
+      <div class="slg"><div class="slh">OTI Score <span id="wov">50</span></div><input type="range" id="wo" min="0" max="100" step="1" value="50" oninput="wiRun()"></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--t2);cursor:pointer;margin-top:6px"><input type="checkbox" id="wblk" onchange="wiRun()"> Comms Blackout Active</label>
+      <div style="display:flex;gap:7px;margin-top:12px">
+        <button class="btn bp bsm" onclick="wiRun()">Simulate</button>
+        <button class="btn bsm" onclick="wiReset()">Reset</button>
+      </div>
+    </div>
+    <div>
+      <div class="wbox card" id="wbox"><div class="ld"><span class="sp"></span>Move sliders to simulate</div></div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">Scenario History</div></div><div class="cv h200"><canvas id="c7a"></canvas></div></div>
+    </div>
+  </div>
+</div>
+<!-- TAB 8: LIVE FEED -->
+<div class="pane" id="p8">
+  <div class="ins">&#x1F4E1; <span>Real-time intelligence stream. Updates every 5s. <span class="b bliv">LIVE</span></span></div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="ct">ISS Live Tracking</div><span class="b bliv">LIVE</span></div><div id="issdisp" style="font-family:var(--fm);font-size:12px;color:var(--t2);line-height:2.2"></div></div>
+    <div class="card"><div class="ch"><div class="ct">System Vitals</div></div><div id="vitals"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ch"><div class="ct">Live Mars Delay</div></div><div class="cv h140"><canvas id="c8a"></canvas></div></div>
+    <div class="card"><div class="ch"><div class="ct">Risk Event Counts</div></div><div class="cv h140"><canvas id="c8b"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">Intelligence Stream</div><div style="display:flex;gap:6px"><button class="btn bsm" id="fpbtn" onclick="feedToggle()">Pause</button><button class="btn bsm" onclick="feedClear()">Clear</button></div></div>
+    <div id="feedlist" style="max-height:340px;overflow-y:auto"></div>
+  </div>
+</div>
+<!-- TAB 9: INDIA -->
+<div class="pane" id="p9">
+  <div class="ins">&#x1F1EE;&#x1F1F3; <span>Satellites over India (8-35N, 68-97E). ISRO ground stations and ISS pass predictions.</span></div>
+  <div class="kg" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi kb"><div class="klb">Sats over India</div><div class="kv" id="ins">--</div><div class="ks">right now</div></div>
+    <div class="kpi kg2"><div class="klb">ISS Visible</div><div class="kv" id="iniss">--</div><div class="ks">from India</div></div>
+    <div class="kpi ky"><div class="klb">ISRO Stations</div><div class="kv">9</div><div class="ks">network</div></div>
+    <div class="kpi kp"><div class="klb">ISS Passes</div><div class="kv" id="inpass">--</div><div class="ks">next 24h</div></div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="card"><div class="ch"><div class="ct">India Coverage Map</div><div class="csb">Satellites in Indian airspace</div></div>
+        <svg id="india-svg" viewBox="0 0 320 340">
+          <rect width="320" height="340" fill="#0b1929"/>
+          <!-- India shape simplified -->
+          <path d="M75,28 L130,12 L175,18 L210,28 L245,55 L265,105 L258,155 L242,195 L225,230 L218,262 L200,295 L185,322 L170,338 L160,340 L150,338 L136,322 L122,296 L104,264 L84,228 L62,185 L48,140 L50,95 L62,60 Z" fill="#163040" stroke="#2a4870" stroke-width="1.5"/>
+          <path d="M75,28 L130,12 L175,18 L210,28 L210,42 L190,52 L160,56 L130,52 L105,45 Z" fill="#1a3548" stroke="#2a4870" stroke-width="1"/>
+          <!-- Grid -->
+          <line x1="0" y1="113" x2="320" y2="113" stroke="rgba(42,72,112,.3)" stroke-width=".5"/>
+          <line x1="0" y1="193" x2="320" y2="193" stroke="rgba(42,72,112,.3)" stroke-width=".5"/>
+          <line x1="0" y1="273" x2="320" y2="273" stroke="rgba(42,72,112,.3)" stroke-width=".5"/>
+          <line x1="80" y1="0" x2="80" y2="340" stroke="rgba(42,72,112,.3)" stroke-width=".5"/>
+          <line x1="160" y1="0" x2="160" y2="340" stroke="rgba(42,72,112,.3)" stroke-width=".5"/>
+          <line x1="240" y1="0" x2="240" y2="340" stroke="rgba(42,72,112,.3)" stroke-width=".5"/>
+          <!-- Labels -->
+          <text x="4" y="10" font-size="8" fill="#304e6a">35N</text>
+          <text x="4" y="117" font-size="8" fill="#304e6a">25N</text>
+          <text x="4" y="197" font-size="8" fill="#304e6a">15N</text>
+          <text x="4" y="277" font-size="8" fill="#304e6a">8N</text>
+          <text x="78" y="335" font-size="8" fill="#304e6a">68E</text>
+          <text x="155" y="335" font-size="8" fill="#304e6a">82E</text>
+          <text x="235" y="335" font-size="8" fill="#304e6a">97E</text>
+          <!-- Ground stations (yellow dots) -->
+          <circle cx="151" cy="213" r="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.2"/><text x="156" y="217" font-size="8" fill="#f59e0b">Bengaluru</text>
+          <circle cx="159" cy="145" r="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.2"/><text x="164" y="149" font-size="8" fill="#f59e0b">Delhi</text>
+          <circle cx="104" cy="222" r="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.2"/><text x="66" y="226" font-size="8" fill="#f59e0b">Mumbai</text>
+          <circle cx="162" cy="236" r="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.2"/><text x="167" y="240" font-size="8" fill="#f59e0b">Chennai</text>
+          <circle cx="152" cy="200" r="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.2"/><text x="157" y="204" font-size="8" fill="#f59e0b">Hyderabad</text>
+          <circle cx="192" cy="175" r="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.2"/><text x="197" y="179" font-size="8" fill="#f59e0b">Kolkata</text>
+          <!-- Dynamic satellite dots injected by JS -->
+          <g id="indsats"></g>
+          <g id="indiss"></g>
+        </svg>
+      </div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">Coverage by Orbit Class</div></div><div class="cv h140"><canvas id="c9a"></canvas></div></div>
+    </div>
+    <div>
+      <div class="card"><div class="ch"><div class="ct">Satellites Over India</div><div class="csb">Current pass</div></div><div class="tw" style="max-height:220px"><table><thead><tr><th>Name</th><th>Orbit</th><th>Alt km</th><th>Lat</th><th>Lon</th></tr></thead><tbody id="indtbody"></tbody></table></div></div>
+      <div class="card" style="margin-top:11px"><div class="ch"><div class="ct">ISS Pass Predictions</div><div class="csb">Next 24h over ISRO stations</div></div><div id="indpasses"><div class="ld"><span class="sp"></span>Loading...</div></div></div>
+    </div>
+  </div>
+</div>
+</main>
+<script>
+const API='http://localhost:8765';
+const D={sats:[],delay:[],preds:[],risk:[],anom:[],oti:[],dec:{},met:{},imp:{},iss:{},oc:{},cc:{},rC:{}};
+const CH={}; // chart registry
+const rendered={}; // tab rendered flags
+let curTab=0;
+let satPage=0,satData=[]; const SPP=100;
+let feedPaused=false,feedLog=[];
+let wiHistory=[],wiTimer=null;
+let showCI=false;
+let activeConst='ALL';
+// Globe state
+let gS,gCam,gRend,gEarth,gRot={x:.2,y:0},gDrag=false,gDS={x:0,y:0},gZoom=2.5,gAuto=true,gPts=[],gIss=null,gPh=0;
+
+// UTC clock
+setInterval(()=>{document.getElementById('hclk').textContent=new Date().toISOString().slice(11,19)+' UTC';},1000);
+
+// &#9472;&#9472; TAB SWITCH &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function T(n){
+  document.querySelectorAll('.pane').forEach((p,i)=>p.classList.toggle('on',i===n));
+  document.querySelectorAll('.ntab').forEach((t,i)=>t.classList.toggle('on',i===n));
+  curTab=n;
+  // Resize all charts after CSS transition settles (fixes elongation bug)
+  setTimeout(()=>{Object.values(CH).forEach(c=>{try{c.resize();}catch(e){}});},80);
+  if(!rendered[n]){rendered[n]=true;renderTab(n);}
+  if(n===1&&!window.gReady) initGlobe();
+  if(n===8) updateFeedCharts();
+}
+
+function renderTab(n){
+  const fn=[renderOverview,null,renderMars,renderML,satLoad,renderRisk,renderDecision,wiRun,null,renderIndia];
+  if(fn[n]) fn[n]();
+}
+
+// &#9472;&#9472; FETCH &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+async function fetchAll(){
+  try{
+    const [dl,pr,st,ri,an,ot,de,me,im]=await Promise.all([
+      fetch(API+'/api/delay?limit=500').then(r=>r.json()).catch(()=>({data:[]})),
+      fetch(API+'/api/predictions').then(r=>r.json()).catch(()=>({data:[]})),
+      fetch(API+'/api/satellites?limit=20000').then(r=>r.json()).catch(()=>({data:[],orbit_counts:{},constellation_counts:{}})),
+      fetch(API+'/api/risk').then(r=>r.json()).catch(()=>({data:[],counts:{}})),
+      fetch(API+'/api/anomalies').then(r=>r.json()).catch(()=>({data:[]})),
+      fetch(API+'/api/oti').then(r=>r.json()).catch(()=>({data:[]})),
+      fetch(API+'/api/decision').then(r=>r.json()).catch(()=>({})),
+      fetch(API+'/api/metrics').then(r=>r.json()).catch(()=>({})),
+      fetch(API+'/api/feature-importance').then(r=>r.json()).catch(()=>({})),
+    ]);
+    D.delay=dl.data||[]; D.preds=pr.data||[]; D.sats=st.data||[];
+    D.risk=ri.data||[]; D.rC=ri.counts||{}; D.anom=an.data||[];
+    D.oti=ot.data||[]; D.dec=de||{}; D.met=me||{}; D.imp=im||{};
+    D.oc=st.orbit_counts||{}; D.cc=st.constellation_counts||{};
+    updateHeader();
+    // Re-render current visible tab
+    rendered[curTab]=false; renderTab(curTab);
+    if(curTab===8) updateFeedCharts();
+  }catch(e){console.error(e);}
+}
+
+async function fetchISS(){
+  try{
+    D.iss=await fetch(API+'/api/iss').then(r=>r.json()).catch(()=>({}));
+    ['iLat','iLon','iAlt'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent=[D.iss.lat,D.iss.lon,D.iss.altitude_km].map(v=>(+v||0).toFixed(2))[i];
+    });
+    if(curTab===8) updateFeedCharts();
+  }catch(e){}
+}
+
+// &#9472;&#9472; HEADER &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function updateHeader(){
+  const s=D.dec.severity||'NOMINAL';
+  const b=document.getElementById('sbdg');
+  b.className='sev '+(s==='NOMINAL'?'sN':s==='CRITICAL'?'sC':'sA');
+  document.getElementById('stxt').textContent=s;
+  const hr=(D.rC['HIGH-RISK']||0);
+  const dl=D.delay.length?(+D.delay[D.delay.length-1].delay_min).toFixed(2):'--';
+  const oti=D.oti.length?(+D.oti[D.oti.length-1].oti_score).toFixed(1):'--';
+  document.getElementById('hs-s').textContent=D.sats.length.toLocaleString();
+  document.getElementById('hs-d').textContent=dl;
+  document.getElementById('hs-h').textContent=hr;
+  document.getElementById('hs-o').textContent=oti;
+  document.getElementById('nhr').textContent=hr;
+}
+
+// &#9472;&#9472; CHART FACTORY &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+const GRD={color:'rgba(26,50,84,.35)'};
+const TK={color:'#7a9cc0',font:{size:9}};
+function mkC(id,type,data,opts){
+  const el=document.getElementById(id);if(!el)return null;
+  if(CH[id]){try{CH[id].destroy();}catch(e){}delete CH[id];}
+  CH[id]=new Chart(el.getContext('2d'),{type,data,options:{
+    ...opts,responsive:true,maintainAspectRatio:false,
+    animation:{duration:200},
+    plugins:{...(opts.plugins||{}),
+      legend:{...((opts.plugins||{}).legend||{}),
+        labels:{...(((opts.plugins||{}).legend||{}).labels||{}),color:'#7a9cc0',font:{size:9},boxWidth:10}}}}});
+  return CH[id];
+}
+
+// &#9472;&#9472; OVERVIEW &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function renderOverview(){
+  const hr=D.rC['HIGH-RISK']||0;
+  const dl=D.delay.length?(+D.delay[D.delay.length-1].delay_min).toFixed(2):'--';
+  const oti=D.oti.length?(+D.oti[D.oti.length-1].oti_score).toFixed(1):'--';
+  const blk=D.delay.filter(x=>x.is_blackout).length;
+  const anC=D.anom.filter(a=>a.is_anom).length;
+  document.getElementById('ov-s').textContent=D.sats.length.toLocaleString();
+  document.getElementById('ov-st').textContent=D.dec.severity||'NOMINAL';
+  document.getElementById('ov-d').textContent=dl; document.getElementById('ov-h').textContent=hr;
+  ['kd','ks2','kh','ko','ka','kb2'].forEach((id,i)=>{
+    const el=document.getElementById(id);if(el)el.textContent=[dl,D.sats.length.toLocaleString(),hr,oti,anC,blk][i];});
+  // Delay chart
+  const live=D.delay.slice(-100);
+  mkC('c0a','line',{labels:live.map(d=>new Date(d.timestamp).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})),
+    datasets:[{label:'Delay',data:live.map(d=>+d.delay_min),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',borderWidth:2,tension:.35,pointRadius:0,fill:true}]},
+    {scales:{x:{display:false},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  // Orbit donut
+  mkC('c0b','doughnut',{labels:Object.keys(D.oc),datasets:[{data:Object.values(D.oc),backgroundColor:['#3b82f6','#8b5cf6','#f59e0b','#10b981'],borderWidth:0}]},
+    {plugins:{legend:{position:'bottom'}}});
+  // Risk pie
+  const rc=D.rC;
+  mkC('c0c','doughnut',{labels:['SAFE','CAUTION','HIGH-RISK'],datasets:[{data:[rc.SAFE||0,rc.CAUTION||0,rc['HIGH-RISK']||0],backgroundColor:['#10b981','#f59e0b','#ef4444'],borderWidth:0}]},
+    {plugins:{legend:{position:'bottom'}}});
+  // Orbit progress
+  const tot=D.sats.length||1;
+  document.getElementById('ov-oc').innerHTML=Object.entries(D.oc).map(([k,v])=>`
+    <div class="prow"><div class="plb">${k}</div>
+    <div class="pb"><div class="pf" style="width:${(v/tot*100).toFixed(1)}%;background:${k==='LEO'?'#3b82f6':k==='MEO'?'#8b5cf6':k==='GEO'?'#f59e0b':'#10b981'}"></div></div>
+    <div class="pv">${v.toLocaleString()}</div></div>`).join('');
+  // Recs
+  const recs=D.dec.recommendations||['System nominal'];
+  document.getElementById('ov-recs').innerHTML=recs.map(r=>`<div style="padding:5px 0;border-bottom:1px solid rgba(26,50,84,.25);font-size:10.5px;color:var(--t2)"><span style="color:var(--blu)">&#9656; </span>${r}</div>`).join('');
+  // Alerts
+  const sv=D.dec.severity||'NOMINAL';
+  document.getElementById('ov-alr').innerHTML=(sv==='WARNING'||sv==='CRITICAL')
+    ?`<div class="alert-box"><span class="b bred">${sv}</span><span style="color:var(--t2);font-size:10.5px;margin-left:8px">${D.dec.rationale||''}</span></div>`
+    :`<div style="color:var(--grn);font-size:10.5px;padding:6px">&#x2714; No active alerts</div>`;
+}
+
+// &#9472;&#9472; MARS COMM &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function renderMars(){
+  const hist=D.preds.filter(p=>!p.is_future);
+  const actuals=hist.map(p=>+p.actual).filter(Boolean);
+  const mn=actuals.length?Math.min(...actuals).toFixed(2):'--';
+  const mx=actuals.length?Math.max(...actuals).toFixed(2):'--';
+  const cur=D.delay.length?(+D.delay[D.delay.length-1].delay_min).toFixed(2):'--';
+  document.getElementById('mcur').textContent=cur;
+  document.getElementById('mlo').textContent=mn; document.getElementById('mmin').textContent=mn;
+  document.getElementById('mhi').textContent=mx; document.getElementById('mmax').textContent=mx;
+  // Full chart (sampled for perf)
+  const all=D.preds; const step=Math.max(1,Math.floor(all.length/400));
+  const s=all.filter((_,i)=>i%step===0);
+  const ds=[
+    {label:'Actual',data:s.map(p=>p.actual),borderColor:'#10b981',borderWidth:1.5,pointRadius:0,tension:.2},
+    {label:'Predicted',data:s.map(p=>p.predicted),borderColor:'#3b82f6',borderWidth:2,pointRadius:0,tension:.3},
+  ];
+  if(showCI){
+    ds.push({label:'CI Upper',data:s.map(p=>p.ci_hi),borderColor:'rgba(59,130,246,.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false});
+    ds.push({label:'CI Lower',data:s.map(p=>p.ci_lo),borderColor:'rgba(59,130,246,.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:'-1',backgroundColor:'rgba(59,130,246,.04)'});
+  }
+  mkC('c2a','line',{labels:s.map(p=>new Date(p.timestamp).toLocaleDateString()),datasets:ds},{scales:{x:{display:false},y:{grid:GRD,ticks:TK}}});
+  // Histogram
+  const bins=Array(10).fill(0);
+  actuals.forEach(v=>{const i=Math.min(9,Math.max(0,Math.floor((v-3)/2)));bins[i]++;});
+  mkC('c2b','bar',{labels:Array.from({length:10},(_,i)=>`${3+i*2}-${5+i*2}`),datasets:[{label:'Count',data:bins,backgroundColor:'rgba(59,130,246,.7)',borderRadius:3}]},
+    {scales:{x:{ticks:TK,grid:{display:false}},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  // Monthly avg
+  const mon={};
+  hist.forEach(p=>{if(p.actual){const m=p.timestamp.slice(0,7);(mon[m]=mon[m]||[]).push(+p.actual);}});
+  const mk=Object.keys(mon).sort();
+  mkC('c2c','bar',{labels:mk.map(k=>k.slice(5)),datasets:[{label:'Avg Delay',data:mk.map(k=>+(mon[k].reduce((a,b)=>a+b,0)/mon[k].length).toFixed(3)),backgroundColor:'rgba(139,92,246,.7)',borderRadius:3}]},
+    {scales:{x:{ticks:TK,grid:{display:false}},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+}
+function toggleCI(){showCI=!showCI;const b=document.getElementById('cibtn');b.textContent=showCI?'Hide CI':'Show CI';b.className='btn bsm'+(showCI?' bp':'');rendered[2]=false;renderMars();}
+
+// &#9472;&#9472; ML MODELS &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function renderML(){
+  const dm=D.met.delay_model||{};const rm=D.met.risk_model||{};const am=D.met.anomaly_model||{};
+  document.getElementById('mlr2').textContent=dm.r2||'--';
+  document.getElementById('mldm').innerHTML=[['Algorithm','Ridge + Fourier'],['R2 Score',dm.r2||'--'],['MAE',(dm.mae||'--')+' min'],['RMSE',(dm.rmse||'--')+' min']].map(([k,v])=>`<div class="mr"><div class="mk">${k}</div><div class="mv${k==='R2 Score'?' mvg':''}">${v}</div></div>`).join('');
+  document.getElementById('mlrm').innerHTML=[['Algorithm','Random Forest'],['Accuracy',rm.accuracy||'--'],['AUC',rm.auc||'--'],['Trees','100'],['Anomalies',(am.n_detected||0)+' detected']].map(([k,v])=>`<div class="mr"><div class="mk">${k}</div><div class="mv${k==='Accuracy'||k==='AUC'?' mvg':''}">${v}</div></div>`).join('');
+  const hist=D.preds.filter(p=>!p.is_future&&p.actual!=null);
+  const step=Math.max(1,Math.floor(hist.length/300));const sh=hist.filter((_,i)=>i%step===0);
+  mkC('c3a','line',{labels:sh.map((_,i)=>i),datasets:[{label:'Actual',data:sh.map(p=>+p.actual),borderColor:'#10b981',borderWidth:1.5,pointRadius:0,tension:.2},{label:'Predicted',data:sh.map(p=>+p.predicted),borderColor:'#3b82f6',borderWidth:2,pointRadius:0,tension:.3}]},{scales:{x:{display:false},y:{grid:GRD,ticks:TK}}});
+  const imp=D.imp.delay||{};const si=Object.entries(imp).sort((a,b)=>b[1]-a[1]);
+  mkC('c3b','bar',{labels:si.map(([k])=>k),datasets:[{data:si.map(([,v])=>+v.toFixed(4)),backgroundColor:si.map((_,i)=>`hsl(${200+i*25},65%,55%)`),borderRadius:3}]},{indexAxis:'y',scales:{x:{grid:GRD,ticks:TK},y:{ticks:TK,grid:{display:false}}},plugins:{legend:{display:false}}});
+  const as=Math.max(1,Math.floor(D.anom.length/200));const sa=D.anom.filter((_,i)=>i%as===0);
+  mkC('c3c','line',{labels:sa.map(a=>new Date(a.timestamp).toLocaleDateString()),datasets:[{label:'Score',data:sa.map(a=>+a.score),borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,tension:.2,fill:false},{label:'Anomaly',data:sa.map(a=>a.is_anom?+a.score:null),type:'scatter',backgroundColor:'#ef4444',pointRadius:sa.map(a=>a.is_anom?4:0)}]},{scales:{x:{display:false},y:{grid:GRD,ticks:TK}}});
+  mkC('c3d','radar',{labels:['R2','Accuracy','AUC','Precision','Recall'],datasets:[{label:'Models',data:[(+dm.r2||0),(+rm.accuracy||0),(+rm.auc||0),(+am.precision||0),(+am.recall||0)].map(v=>+(v*100).toFixed(1)),backgroundColor:'rgba(59,130,246,.15)',borderColor:'#3b82f6',borderWidth:2,pointBackgroundColor:'#3b82f6'}]},{scales:{r:{grid:{color:'rgba(26,50,84,.4)'},pointLabels:{color:'#7a9cc0',font:{size:9}},ticks:{display:false},min:0,max:100}}});
+}
+
+// &#9472;&#9472; SATELLITES &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function satLoad(){
+  const ob=document.getElementById('sof').value;const cn=document.getElementById('scf').value;
+  let f=D.sats;
+  if(ob!=='ALL')f=f.filter(s=>s.orbit_class===ob);
+  if(cn!=='ALL')f=f.filter(s=>s.constellation===cn);
+  satData=f;satPage=0;
+  document.getElementById('stot').textContent=D.sats.length.toLocaleString();
+  // Populate const dropdown
+  const sel=document.getElementById('scf');const prev=sel.value;
+  sel.innerHTML='<option value="ALL">All Constellations</option>';
+  Object.entries(D.cc).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=`${k} (${v.toLocaleString()})`;sel.appendChild(o);});
+  sel.value=prev;
+  // Also update globe dropdown
+  const gs=document.getElementById('gcf');const gp=gs.value;
+  gs.innerHTML='<option value="ALL">All Constellations</option>';
+  Object.entries(D.cc).sort((a,b)=>b[1]-a[1]).slice(0,30).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=`${k} (${v.toLocaleString()})`;gs.appendChild(o);});
+  gs.value=gp;
+  satRender();satCharts();
+}
+function satSearch(){satPage=0;satRender();}
+function satPg(d){
+  const srch=document.getElementById('ssrch').value.toLowerCase();
+  const fl=srch?satData.filter(s=>s.name.toLowerCase().includes(srch)):satData;
+  satPage=Math.max(0,Math.min(Math.ceil(fl.length/SPP)-1,satPage+d));
+  satRender();
+}
+function satRender(){
+  const srch=document.getElementById('ssrch').value.toLowerCase();
+  const fl=srch?satData.filter(s=>s.name.toLowerCase().includes(srch)):satData;
+  const s=satPage*SPP,e=s+SPP;const pg=fl.slice(s,e);
+  const bc={LEO:'bblu',MEO:'bpur',GEO:'bylw',HEO:'bgrn'};
+  document.getElementById('stbody').innerHTML=pg.map((x,i)=>`<tr><td>${s+i+1}</td><td class="nm">${x.name}</td><td style="font-family:var(--fm)">${x.norad_id||'--'}</td><td><span class="b ${bc[x.orbit_class]||'bblu'}">${x.orbit_class}</span></td><td>${x.constellation||'--'}</td><td>${(+x.altitude_km).toFixed(1)}</td><td>${(+x.velocity_kms).toFixed(2)}</td><td>${(+x.lat).toFixed(2)}</td><td>${(+x.lon).toFixed(2)}</td><td style="font-size:9px;color:var(--t3)">${x.source||'--'}</td></tr>`).join('');
+  document.getElementById('spinfo').textContent=`${s+1}-${Math.min(e,fl.length)} of ${fl.length.toLocaleString()}`;
+  document.getElementById('spg').textContent=`Page ${satPage+1} / ${Math.ceil(fl.length/SPP)||1}`;
+}
+function satCharts(){
+  const rngs=[[0,600],[600,1500],[1500,5000],[5000,15000],[15000,25000],[25000,36000],[36000,1e9]];
+  const bins=rngs.map(()=>0);
+  D.sats.forEach(s=>{for(let i=0;i<rngs.length;i++){if(+s.altitude_km>=rngs[i][0]&&+s.altitude_km<rngs[i][1]){bins[i]++;break;}}});
+  mkC('c4a','bar',{labels:['0-600','600-1.5k','1.5-5k','5-15k','15-25k','25-36k','GEO+'],datasets:[{data:bins,backgroundColor:['#3b82f6','#60a5fa','#8b5cf6','#a78bfa','#f59e0b','#fbbf24','#10b981'],borderRadius:3}]},{scales:{x:{ticks:{...TK,maxRotation:30},grid:{display:false}},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  const top=Object.entries(D.cc).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  mkC('c4b','bar',{labels:top.map(([k])=>k),datasets:[{data:top.map(([,v])=>v),backgroundColor:'rgba(59,130,246,.7)',borderRadius:3}]},{scales:{x:{ticks:{...TK,maxRotation:35},grid:{display:false}},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  const samp=D.sats.filter((_,i)=>i%15===0).slice(0,200);
+  mkC('c4c','scatter',{datasets:[
+    {label:'LEO',data:samp.filter(s=>s.orbit_class==='LEO').map(s=>({x:+s.altitude_km,y:+s.velocity_kms})),backgroundColor:'rgba(59,130,246,.5)',pointRadius:2},
+    {label:'MEO',data:samp.filter(s=>s.orbit_class==='MEO').map(s=>({x:+s.altitude_km,y:+s.velocity_kms})),backgroundColor:'rgba(139,92,246,.5)',pointRadius:2},
+    {label:'GEO',data:samp.filter(s=>s.orbit_class==='GEO').map(s=>({x:+s.altitude_km,y:+s.velocity_kms})),backgroundColor:'rgba(245,158,11,.6)',pointRadius:3},
+  ]},{scales:{x:{title:{display:true,text:'Alt km',color:'#7a9cc0',font:{size:9}},grid:GRD,ticks:TK},y:{title:{display:true,text:'Vel km/s',color:'#7a9cc0',font:{size:9}},grid:GRD,ticks:TK}}});
+  const top8=Object.entries(D.cc).sort((a,b)=>b[1]-a[1]).slice(0,16);
+  document.getElementById('cgrid').innerHTML=top8.map(([k,v])=>`<div class="cc ${activeConst===k?'on':''}" onclick="constFilt('${k}')"><div class="ccn">${k}</div><div class="ccc">${v.toLocaleString()}</div><div class="cco">sats</div></div>`).join('');
+}
+function constFilt(c){activeConst=activeConst===c?'ALL':c;document.getElementById('scf').value=activeConst;satLoad();}
+
+// &#9472;&#9472; RISK &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function renderRisk(){
+  const rc=D.rC||{};
+  document.getElementById('rtot').textContent=D.risk.length.toLocaleString();
+  document.getElementById('rsf').textContent=(rc.SAFE||0).toLocaleString();
+  document.getElementById('rca').textContent=(rc.CAUTION||0).toLocaleString();
+  document.getElementById('rhr').textContent=(rc['HIGH-RISK']||0).toLocaleString();
+  mkC('c5a','doughnut',{labels:['SAFE','CAUTION','HIGH-RISK'],datasets:[{data:[rc.SAFE||0,rc.CAUTION||0,rc['HIGH-RISK']||0],backgroundColor:['#10b981','#f59e0b','#ef4444'],borderWidth:0}]},{plugins:{legend:{position:'bottom'}}});
+  const sc=D.risk.slice(0,300);
+  mkC('c5b','scatter',{datasets:[
+    {label:'SAFE',data:sc.filter(r=>r.risk_label==='SAFE').map(r=>({x:+r.miss_distance_km,y:+r.prob_high_risk*100})),backgroundColor:'rgba(16,185,129,.5)',pointRadius:2},
+    {label:'CAUTION',data:sc.filter(r=>r.risk_label==='CAUTION').map(r=>({x:+r.miss_distance_km,y:+r.prob_high_risk*100})),backgroundColor:'rgba(245,158,11,.6)',pointRadius:2},
+    {label:'HIGH-RISK',data:sc.filter(r=>r.risk_label==='HIGH-RISK').map(r=>({x:+r.miss_distance_km,y:+r.prob_high_risk*100})),backgroundColor:'rgba(239,68,68,.7)',pointRadius:3},
+  ]},{scales:{x:{title:{display:true,text:'Miss Distance km',color:'#7a9cc0',font:{size:9}},grid:GRD,ticks:TK},y:{title:{display:true,text:'P(HR) %',color:'#7a9cc0',font:{size:9}},grid:GRD,ticks:TK}}});
+  const sv=D.dec.severity||'NOMINAL';
+  document.getElementById('ralerts').innerHTML=(sv==='WARNING'||sv==='CRITICAL')
+    ?`<div class="alert-box"><span class="b bred">${sv}</span><span style="color:var(--t2);font-size:10.5px;margin-left:8px">${D.dec.rationale||''}</span></div>`
+    :`<div style="color:var(--grn);font-size:10.5px;padding:6px">&#x2714; No active alerts</div>`;
+  riskLoad();
+}
+async function riskLoad(){
+  const lbl=document.getElementById('rfilt').value;
+  const url=API+'/api/risk?limit=100'+(lbl==='ALL'?'':'&label='+lbl);
+  const r=await fetch(url).then(x=>x.json()).catch(()=>({data:[]}));
+  const bc={'SAFE':'bgrn','CAUTION':'bylw','HIGH-RISK':'bred'};
+  document.getElementById('rtbody').innerHTML=(r.data||[]).map((x,i)=>`<tr><td>${i+1}</td><td class="nm">${x.sat1}</td><td class="nm">${x.sat2}</td><td>${(+x.miss_distance_km).toFixed(3)}</td><td><span class="b ${bc[x.risk_label]||'bblu'}">${x.risk_label}</span></td><td>${((+x.prob_high_risk)*100).toFixed(2)}%</td></tr>`).join('');
+}
+
+// &#9472;&#9472; AI DECISION &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function renderDecision(){
+  const d=D.dec;const s=d.severity||'NOMINAL';
+  const cl={NOMINAL:'var(--grn)',ADVISORY:'var(--ylw)',WARNING:'var(--ylw)',CRITICAL:'var(--red)'}[s]||'var(--blu)';
+  const card=document.getElementById('dcard');card.style.background=`${cl}12`;card.style.borderColor=cl;
+  const se=document.getElementById('dsev');se.textContent=s;se.style.color=cl;
+  document.getElementById('dconf').textContent=`Confidence: ${((+d.confidence||0)*100).toFixed(1)}%`;
+  document.getElementById('drat').textContent=d.rationale||'All systems nominal';
+  document.getElementById('drecs').innerHTML=(d.recommendations||[]).map(r=>`<li style="padding:4px 0;color:var(--t2);font-size:10.5px;border-bottom:1px solid rgba(26,50,84,.2)"><span style="color:var(--blu)">&#9656; </span>${r}</li>`).join('');
+  document.getElementById('dfacs').innerHTML=(d.factors||[]).map(f=>`<div style="padding:5px 0;border-bottom:1px solid rgba(26,50,84,.2);font-size:10.5px;color:var(--t2)">&#9889; ${f}</div>`).join('');
+  const os=Math.max(1,Math.floor(D.oti.length/200));const so=D.oti.filter((_,i)=>i%os===0);
+  mkC('c6a','line',{labels:so.map((_,i)=>i),datasets:[{label:'OTI',data:so.map(o=>+o.oti_score),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.07)',borderWidth:2,tension:.3,fill:true,pointRadius:0}]},{scales:{x:{display:false},y:{min:0,max:100,grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  // Signal radar
+  const dl=D.delay.length?+D.delay[D.delay.length-1].delay_min:0;
+  const leo=D.oc.LEO||0;const tot=D.sats.length||1;const cong=leo/tot*100;
+  const hr=(D.rC['HIGH-RISK']||0);const anC=D.anom.filter(a=>a.is_anom).length;
+  const otiV=D.oti.length?+D.oti[D.oti.length-1].oti_score:0;
+  mkC('c6b','radar',{labels:['Delay','Congestion','Risk','Anomaly','OTI'],datasets:[{label:'Now',data:[dl/25*100,cong,hr/300*100,anC/50*100,otiV].map(v=>Math.min(100,+(+v).toFixed(1))),backgroundColor:'rgba(239,68,68,.12)',borderColor:'#ef4444',borderWidth:2,pointBackgroundColor:'#ef4444'}]},{scales:{r:{grid:{color:'rgba(26,50,84,.4)'},pointLabels:{color:'#7a9cc0',font:{size:9}},ticks:{display:false},min:0,max:100}}});
+}
+async function planAv(){
+  const r=await fetch(API+'/api/avoidance/plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_alt_km:+document.getElementById('avc').value,target_alt_km:+document.getElementById('avt').value,mass_kg:+document.getElementById('avm').value})}).then(x=>x.json()).catch(()=>({error:'Server error'}));
+  if(r.error){document.getElementById('avres').textContent='Error: '+r.error;return;}
+  document.getElementById('avres').innerHTML=`<div class="g2" style="font-size:10.5px">${[['Current Alt',r.current_altitude_km+' km'],['Target Alt',r.target_altitude_km+' km'],['dV Burn1',r.delta_v_burn1_kms+' km/s'],['dV Burn2',r.delta_v_burn2_kms+' km/s'],['Total dV',r.total_delta_v_kms+' km/s'],['Transfer',r.transfer_time_min+' min'],['Propellant',r.propellant_required_kg+' kg'],['Mass%',r.propellant_percent+'%']].map(([k,v])=>`<div class="mr"><div class="mk">${k}</div><div class="mv mvg">${v}</div></div>`).join('')}</div>`;
+}
+
+// &#9472;&#9472; WHAT-IF &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function wiRun(){
+  const dl=+document.getElementById('wd').value;const cn=+document.getElementById('wc').value;
+  const hr=+document.getElementById('wh').value;const an=+document.getElementById('wa').value/100;
+  const ot=+document.getElementById('wo').value;const bk=document.getElementById('wblk').checked;
+  document.getElementById('wdv').textContent=dl.toFixed(1);document.getElementById('wcv').textContent=cn;
+  document.getElementById('whv').textContent=hr;document.getElementById('wav').textContent=(an*100).toFixed(1);document.getElementById('wov').textContent=ot;
+  clearTimeout(wiTimer);
+  wiTimer=setTimeout(async()=>{
+    const r=await fetch(`${API}/api/whatif?delay=${dl}&congestion=${cn}&risk_count=${hr}&anom_pct=${an}&oti=${ot}&blackout=${bk}`).then(x=>x.json()).catch(()=>null);
+    if(!r){document.getElementById('wbox').innerHTML='<div class="ld">Server unavailable</div>';return;}
+    const sv=r.severity||'NOMINAL';
+    const cl={NOMINAL:'var(--grn)',ADVISORY:'var(--ylw)',WARNING:'var(--ylw)',CRITICAL:'var(--red)'}[sv]||'var(--blu)';
+    const box=document.getElementById('wbox');box.style.background=`${cl}12`;box.style.borderColor=cl;
+    box.innerHTML=`<div class="wsev" style="color:${cl}">${sv}</div><div class="wconf">Confidence: ${((+r.confidence||0)*100).toFixed(1)}%</div><div style="font-size:10.5px;color:var(--t2);margin-bottom:8px">${r.rationale||''}</div><ul style="list-style:none;padding:0">${(r.recommendations||[]).map(x=>`<li style="padding:3px 0;color:var(--t2);font-size:10.5px"><span style="color:var(--blu)">&#9656; </span>${x}</li>`).join('')}</ul>`;
+    wiHistory.push({x:dl,y:cn,s:sv,t:Date.now()});if(wiHistory.length>25)wiHistory.shift();
+    const clmap={NOMINAL:'#10b981',ADVISORY:'#f59e0b',WARNING:'#f59e0b',CRITICAL:'#ef4444'};
+    mkC('c7a','scatter',{datasets:[{label:'Simulations',data:wiHistory.map(p=>({x:p.x,y:p.y})),backgroundColor:wiHistory.map(p=>clmap[p.s]||'#3b82f6'),pointRadius:7}]},{scales:{x:{title:{display:true,text:'Delay min',color:'#7a9cc0',font:{size:9}},grid:GRD,ticks:TK},y:{title:{display:true,text:'Congestion %',color:'#7a9cc0',font:{size:9}},grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  },300);
+}
+function wiReset(){document.getElementById('wd').value=10;document.getElementById('wc').value=50;document.getElementById('wh').value=20;document.getElementById('wa').value=3;document.getElementById('wo').value=50;document.getElementById('wblk').checked=false;wiRun();}
+
+// &#9472;&#9472; LIVE FEED &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function updateFeedCharts(){
+  const iss=D.iss;
+  document.getElementById('issdisp').innerHTML=`<div>Lat: <b>${(+iss.lat||0).toFixed(4)}</b> deg</div><div>Lon: <b>${(+iss.lon||0).toFixed(4)}</b> deg</div><div>Alt: <b>${(+iss.altitude_km||0).toFixed(2)}</b> km</div><div>Vel: <b>${(+iss.velocity_kms||0).toFixed(2)}</b> km/s</div><div style="font-size:9.5px;color:var(--t3);margin-top:3px">${iss.timestamp?new Date(iss.timestamp).toLocaleTimeString():''}</div>`;
+  const dl=D.delay.length?(+D.delay[D.delay.length-1].delay_min).toFixed(3):'--';
+  const oti=D.oti.length?(+D.oti[D.oti.length-1].oti_score).toFixed(1):'--';
+  document.getElementById('vitals').innerHTML=[['Status',D.dec.severity||'--'],['Satellites',D.sats.length.toLocaleString()],['Mars Delay',dl+' min'],['High-Risk',(D.rC['HIGH-RISK']||0)],['OTI',oti],['Anomalies',D.anom.filter(a=>a.is_anom).length]].map(([k,v])=>`<div class="mr"><div class="mk">${k}</div><div class="mv">${v}</div></div>`).join('');
+  const live=D.delay.slice(-50);
+  mkC('c8a','line',{labels:live.map(d=>new Date(d.timestamp).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})),datasets:[{label:'Delay',data:live.map(d=>+d.delay_min),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',borderWidth:2,pointRadius:0,tension:.3,fill:true}]},{scales:{x:{display:false},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+  const rc=D.rC||{};
+  mkC('c8b','bar',{labels:['SAFE','CAUTION','HIGH-RISK'],datasets:[{data:[rc.SAFE||0,rc.CAUTION||0,rc['HIGH-RISK']||0],backgroundColor:['#10b981','#f59e0b','#ef4444'],borderRadius:3}]},{scales:{x:{ticks:TK,grid:{display:false}},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+}
+const FMSGS=[
+  ()=>`Tracking ${D.sats.length.toLocaleString()} satellites: LEO=${D.oc.LEO||0} MEO=${D.oc.MEO||0} GEO=${D.oc.GEO||0}`,
+  ()=>`Mars delay: ${D.delay.length?(+D.delay[D.delay.length-1].delay_min).toFixed(3):'-'} min one-way`,
+  ()=>`${D.rC['HIGH-RISK']||0} HIGH-RISK conjunctions active`,
+  ()=>`AI: ${D.dec.severity||'NOMINAL'} - confidence ${((+D.dec.confidence||0)*100).toFixed(0)}%`,
+  ()=>`ISS at ${(+D.iss.lat||0).toFixed(1)}N ${(+D.iss.lon||0).toFixed(1)}E alt ${(+D.iss.altitude_km||0).toFixed(0)}km`,
+  ()=>`Anomalies: ${D.anom.filter(a=>a.is_anom).length} detected in telemetry`,
+];
+let feedIdx=0;
+function addFeedMsg(){
+  if(feedPaused)return;
+  const types=['I','I','W','I','O','I'];
+  const type=types[feedIdx%types.length];const msg=FMSGS[feedIdx%FMSGS.length]();feedIdx++;
+  feedLog.unshift({type,msg,t:new Date().toLocaleTimeString()});
+  if(feedLog.length>80)feedLog.pop();
+  document.getElementById('feedlist').innerHTML=feedLog.map(f=>`<div class="fi fi${f.type}"><span class="ft">${f.t}</span><span class="fm2">${f.msg}</span><span class="b ${f.type==='W'?'bylw':f.type==='O'?'bgrn':'bblu'}" style="flex-shrink:0">${f.type==='W'?'WARN':f.type==='O'?'OK':'INFO'}</span></div>`).join('');
+}
+function feedToggle(){feedPaused=!feedPaused;document.getElementById('fpbtn').textContent=feedPaused?'Resume':'Pause';}
+function feedClear(){feedLog=[];document.getElementById('feedlist').innerHTML='';}
+
+// &#9472;&#9472; INDIA &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+async function renderIndia(){
+  const r=await fetch(API+'/api/india').then(x=>x.json()).catch(()=>({satellites:[],count:0,passes:{},iss:{}}));
+  const india=r.satellites||[];const iss=r.iss||D.iss||{};
+  document.getElementById('ins').textContent=india.length;
+  document.getElementById('iniss').textContent=r.iss_visible?'YES':'NO';
+  const passes=r.passes||{};let tot=0;Object.values(passes).forEach(p=>tot+=p.length);
+  document.getElementById('inpass').textContent=tot;
+  // Map (lat 8-35 -> y 310-25, lon 68-97 -> x 15-305)
+  function toXY(lat,lon){return[((lon-68)/(97-68))*290+15,((35-lat)/(35-8))*285+25];}
+  const bc2={LEO:'#3b82f6',MEO:'#8b5cf6',GEO:'#f59e0b',HEO:'#10b981'};
+  document.getElementById('indsats').innerHTML=india.slice(0,80).map((s,i)=>{const[x,y]=toXY(+s.lat,+s.lon);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${bc2[s.orbit_class]||'#3b82f6'}" opacity=".85"><title>${s.name}</title></circle>`;}).join('');
+  if(r.iss_visible&&iss.lat){const[ix,iy]=toXY(+iss.lat,+iss.lon);document.getElementById('indiss').innerHTML=`<circle cx="${ix.toFixed(1)}" cy="${iy.toFixed(1)}" r="6" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.5" opacity=".9"/><circle cx="${ix.toFixed(1)}" cy="${iy.toFixed(1)}" r="10" fill="none" stroke="#f59e0b" stroke-width="1" opacity=".4"/>`;} else {document.getElementById('indiss').innerHTML='';}
+  const bc3={LEO:'bblu',MEO:'bpur',GEO:'bylw',HEO:'bgrn'};
+  document.getElementById('indtbody').innerHTML=india.slice(0,50).map(s=>`<tr><td class="nm">${s.name}</td><td><span class="b ${bc3[s.orbit_class]||'bblu'}">${s.orbit_class}</span></td><td>${(+s.altitude_km).toFixed(1)}</td><td>${(+s.lat).toFixed(2)}</td><td>${(+s.lon).toFixed(2)}</td></tr>`).join('');
+  const passHtml=Object.entries(passes).map(([st,ps])=>`<div style="margin-bottom:8px;font-size:10.5px"><div style="color:var(--ylw);font-weight:600;margin-bottom:3px">&#x1F4CD; ${st}</div>${ps.length?ps.map(p=>`<div style="color:var(--t2);padding:2px 0">&#x23F1; ${new Date(p.start).toLocaleString()} - elev ${p.max_elevation_deg}deg</div>`).join(''):'<div style="color:var(--t3)">No passes in 24h</div>'}</div>`).join('');
+  document.getElementById('indpasses').innerHTML=passHtml||'<div class="ld">No pass data available</div>';
+  const oc2={};india.forEach(s=>{oc2[s.orbit_class]=(oc2[s.orbit_class]||0)+1;});
+  mkC('c9a','bar',{labels:Object.keys(oc2),datasets:[{data:Object.values(oc2),backgroundColor:['#3b82f6','#8b5cf6','#f59e0b','#10b981'],borderRadius:3}]},{scales:{x:{ticks:TK,grid:{display:false}},y:{grid:GRD,ticks:TK}},plugins:{legend:{display:false}}});
+}
+
+// &#9472;&#9472; GLOBE &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+function initGlobe(){
+  if(window.gReady)return;window.gReady=true;
+  const wrap=document.getElementById('gw');const canvas=document.getElementById('gc');
+  gS=new THREE.Scene();gCam=new THREE.PerspectiveCamera(45,wrap.clientWidth/wrap.clientHeight,.1,200);gCam.position.z=gZoom;
+  gRend=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});gRend.setSize(wrap.clientWidth,wrap.clientHeight);gRend.setClearColor(0x000508,1);
+  const sg=new THREE.BufferGeometry();const sv=[];for(let i=0;i<5000;i++)sv.push((Math.random()-.5)*80,(Math.random()-.5)*80,(Math.random()-.5)*80);
+  sg.setAttribute('position',new THREE.Float32BufferAttribute(sv,3));gS.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:.07})));
+  gS.add(new THREE.AmbientLight(0x334466,.6));const sl=new THREE.DirectionalLight(0xffeedd,1);sl.position.set(5,3,5);gS.add(sl);
+  gEarth=new THREE.Mesh(new THREE.SphereGeometry(1,64,64),new THREE.MeshPhongMaterial({map:buildTex(),shininess:8}));gS.add(gEarth);
+  gS.add(new THREE.Mesh(new THREE.SphereGeometry(1.02,32,32),new THREE.MeshPhongMaterial({color:0x3366ff,transparent:true,opacity:.04,side:THREE.FrontSide,depthWrite:false})));
+  gIss=new THREE.Mesh(new THREE.SphereGeometry(.016,8,8),new THREE.MeshBasicMaterial({color:0xf59e0b}));
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.032,.003,8,24),new THREE.MeshBasicMaterial({color:0xf59e0b,transparent:true,opacity:.7}));gIss.add(ring);gS.add(gIss);
+  canvas.addEventListener('mousedown',e=>{gDrag=true;gDS={x:e.clientX,y:e.clientY};});
+  canvas.addEventListener('mousemove',e=>{if(gDrag){gRot.y+=(e.clientX-gDS.x)*.006;gRot.x+=(e.clientY-gDS.y)*.006;gRot.x=Math.max(-1.4,Math.min(1.4,gRot.x));gDS={x:e.clientX,y:e.clientY};}});
+  canvas.addEventListener('mouseup',()=>gDrag=false);canvas.addEventListener('mouseleave',()=>gDrag=false);
+  canvas.addEventListener('wheel',e=>{gZoom=Math.max(1.3,Math.min(6,gZoom+e.deltaY*.003));gCam.position.z=gZoom;},{passive:true});
+  window.addEventListener('resize',()=>{if(!gRend)return;gCam.aspect=wrap.clientWidth/wrap.clientHeight;gCam.updateProjectionMatrix();gRend.setSize(wrap.clientWidth,wrap.clientHeight);});
+  rebuildSats();animGlobe();
+}
+function rebuildSats(){
+  gPts.forEach(p=>gS.remove(p));gPts=[];
+  if(!gS)return;
+  const ob=document.getElementById('gof').value;const cn=document.getElementById('gcf').value;
+  let sats=D.sats;
+  if(ob!=='ALL')sats=sats.filter(s=>s.orbit_class===ob);
+  if(cn!=='ALL')sats=sats.filter(s=>s.constellation===cn);
+  const RE=6371;const MAX=2500;
+  const keep=sats.filter(s=>s.name.includes('ISS')||s.orbit_class==='GEO');
+  const rest=sats.filter(s=>!s.name.includes('ISS')&&s.orbit_class!=='GEO');
+  const step=rest.length>MAX?Math.ceil(rest.length/MAX):1;
+  const final=[...keep,...rest.filter((_,i)=>i%step===0)];
+  const lV=[],mV=[],gV=[],hV=[];
+  final.forEach(s=>{const r=1+(+s.altitude_km/RE)*.18;const v=ll2v(+s.lat,+s.lon,r);(s.orbit_class==='GEO'?gV:s.orbit_class==='MEO'?mV:s.orbit_class==='HEO'?hV:lV).push(v.x,v.y,v.z);});
+  function mkP(vts,col,sz){if(!vts.length)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vts,3));const p=new THREE.Points(g,new THREE.PointsMaterial({color:col,size:sz,sizeAttenuation:true}));gS.add(p);gPts.push(p);}
+  mkP(lV,0x3b82f6,.009);mkP(mV,0x8b5cf6,.013);mkP(gV,0xf59e0b,.018);mkP(hV,0x10b981,.012);
+  document.getElementById('gscount').textContent=sats.length.toLocaleString();
+  ['LEO','MEO','GEO','HEO'].forEach(k=>{const el=document.getElementById('g'+k);if(el)el.textContent=(D.oc[k]||0).toLocaleString();});
+}
+function gReset(){gRot={x:.2,y:0};gZoom=2.5;if(gCam)gCam.position.z=gZoom;}
+function gToggle(){gAuto=!gAuto;document.getElementById('grbtn').textContent=gAuto?'Pause':'Resume';}
+function animGlobe(){
+  requestAnimationFrame(animGlobe);
+  if(!gDrag&&gAuto)gRot.y+=.0006;
+  if(gEarth){gEarth.rotation.x=gRot.x;gEarth.rotation.y=gRot.y;}
+  gPts.forEach(p=>{p.rotation.x=gRot.x;p.rotation.y=gRot.y;});
+  gPh+=.0022;const incl=51.6*Math.PI/180,r=1+(408/6371)*.18;
+  const lat=Math.asin(Math.sin(incl)*Math.sin(gPh))*180/Math.PI;const lon=gPh*180/Math.PI%360-180;
+  if(gIss){const pos=ll2v(lat,lon,r);const ry=gRot.y,rx=gRot.x;const px=pos.x*Math.cos(ry)+pos.z*Math.sin(ry);const pz=-pos.x*Math.sin(ry)+pos.z*Math.cos(ry);const py2=pos.y*Math.cos(rx)-pz*Math.sin(rx);gIss.position.set(px,py2,pos.y*Math.sin(rx)+pz*Math.cos(rx));const sc=1+.4*Math.sin(Date.now()*.006);if(gIss.children[0]){gIss.children[0].scale.set(sc,sc,1);gIss.children[0].material.opacity=.7-.3*sc;}}
+  document.getElementById('iLat').textContent=lat.toFixed(2);document.getElementById('iLon').textContent=lon.toFixed(2);document.getElementById('iAlt').textContent='408';
+  if(gRend)gRend.render(gS,gCam);
+}
+function ll2v(lat,lon,r){const phi=(90-lat)*Math.PI/180,theta=(lon+180)*Math.PI/180;return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));}
+function buildTex(){
+  const W=2048,H=1024,cv=document.createElement('canvas');cv.width=W;cv.height=H;const C=cv.getContext('2d');
+  C.fillStyle='#0d2244';C.fillRect(0,0,W,H);
+  function xy(la,lo){return[(lo+180)/360*W,(90-la)/180*H];}
+  function poly(pts,fill){C.beginPath();pts.forEach(([la,lo],i)=>{const[x,y]=xy(la,lo);i?C.lineTo(x,y):C.moveTo(x,y);});C.closePath();if(fill){C.fillStyle=fill;C.fill();}}
+  const L='#1d4a1d',L2='#2a6b22',ICE='#cce8f4';
+  poly([[70,-141],[60,-140],[55,-130],[50,-125],[45,-124],[35,-121],[22,-106],[18,-94],[10,-83],[10,-85],[18,-96],[22,-106],[28,-110],[32,-117],[40,-124],[45,-124],[50,-125],[55,-130],[60,-140],[70,-141]],L);
+  poly([[12,-72],[5,-52],[0,-50],[-10,-38],[-22,-42],[-35,-57],[-45,-65],[-52,-66],[-38,-57],[-22,-42],[-10,-38],[0,-50],[5,-52],[10,-62]],L);
+  poly([[72,20],[62,24],[56,18],[52,4],[50,2],[44,8],[36,2],[36,12],[40,18],[44,20],[52,12],[60,20],[68,20]],L);
+  poly([[38,10],[16,38],[0,42],[-22,36],[-34,26],[-34,18],[-22,14],[0,6],[8,2],[16,10],[26,8],[34,8]],L);
+  poly([[72,60],[60,28],[52,24],[44,32],[36,36],[20,66],[14,78],[14,82],[20,80],[24,70],[40,60],[52,68],[68,52]],L);
+  poly([[28,72],[20,68],[14,78],[8,80],[14,80],[24,70],[28,72]],'#234a28');
+  poly([[-14,126],[-20,138],[-32,134],[-34,122],[-30,114],[-14,126]],L);
+  C.fillStyle=ICE;C.fillRect(0,H*0.89,W,H*.11);C.fillStyle=ICE;C.fillRect(0,0,W,H*.03);
+  C.strokeStyle='rgba(80,140,255,.07)';C.lineWidth=.6;
+  for(let la=-80;la<=80;la+=20){const[,y]=xy(la,0);C.beginPath();C.moveTo(0,y);C.lineTo(W,y);C.stroke();}
+  for(let lo=-160;lo<=180;lo+=20){const[x]=xy(0,lo);C.beginPath();C.moveTo(x,0);C.lineTo(x,H);C.stroke();}
+  C.strokeStyle='rgba(0,200,255,.2)';C.lineWidth=1.5;const[,eq]=xy(0,0);C.beginPath();C.moveTo(0,eq);C.lineTo(W,eq);C.stroke();
+  C.fillStyle='rgba(255,255,180,.85)';[[51.5,-.1],[48.8,2.4],[52.5,13.4],[55.7,37.6],[40.7,-74],[34,-118],[39.9,116.4],[35.7,139.7],[28.6,77.2],[19,72.9],[-33.9,151.2],[1.3,103.8],[30,31.2]].forEach(([la,lo])=>{const[x,y]=xy(la,lo);C.beginPath();C.arc(x,y,3,0,Math.PI*2);C.fill();});
+  return new THREE.CanvasTexture(cv);
+}
+// &#9472;&#9472; BOOT &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+fetchAll();
+setInterval(fetchAll,12000);
+setInterval(fetchISS,5000);
+setInterval(()=>{addFeedMsg();},4000);
+</script>
+</body></html>

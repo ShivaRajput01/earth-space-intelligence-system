@@ -1,0 +1,10 @@
+# ESIDS ULTIMATE v7.0 — Earth-Space Intelligence & Defence System
+# Python 3.10+
+
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.4
+scipy>=1.12
+joblib>=1.3
+requests>=2.31
+skyfield>=1.48
